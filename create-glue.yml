@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "This template creates Glue resources: Database, Table, Crawler, Job"
+
+Parameters:
+  DatabaseName:
+    Type: String
+    Default: "test-database"
+  TableName:
+    Type: String
+    Default: "test-table"
+  CrawlerName:
+    Type: String
+    Default: "test-crawler"
+  JobName:
+    Type: String
+    Default: "test-job"
+
+Resources:
+  Database:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: !Ref DatabaseName
+
+  Crawler:
+    Type: AWS::Glue::Crawler
+    Properties:
+      DatabaseName: !Ref DatabaseName
+      Name: !Ref CrawlerName
+      Role: !GetAtt CrawlerRole.Arn
+      Targets:
+        S3Targets:
+          - Path: s3://test-bucket/test-data/
+
+  Job:
+    Type: AWS::Glue::Job
+    Properties:
+      Command:
+        Name: glueetl
+        ScriptLocation: s3://test-bucket/test-job.py
+      Role: !GetAtt JobRole.Arn
+      DefaultArguments:
+        "--TempDir": "s3://test-bucket/temp/"
+        "--job-bookmark-option": "job-bookmark-disable"
+      GlueVersion: "1.0"
+      Name: !Ref JobName
+      WorkerType: G.1X
+      NumberOfWorkers: 2

@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: This template creates EC2 instances in Test VPC, inside public and private subnets
+Parameters:
+  EC2AMIID:
+    Description: EC2 Instance AMI ID
+    Type: String
+    Default: ami-0f5ee92e2d63afc18
+
+  EC2InstanceType:
+    Description: Default EC2 instance type
+    Type: String
+    Default: t2.micro
+
+  PublicSSHKeyPair:
+    Description: Key Pair for Public SSH connection
+    Type: String
+    Default: new_aws
+
+Resources:
+  PublicEC2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref EC2AMIID
+      InstanceType: !Ref EC2InstanceType
+      KeyName: !Ref PublicSSHKeyPair
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 15
+            DeleteOnTermination: true
+
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: "0"
+          GroupSet:
+            - !ImportValue AllowPublicSSH
+          SubnetId: !ImportValue PublicSubnetA
+      Tags:
+        - Key: Name
+          Value: test-public-ec2

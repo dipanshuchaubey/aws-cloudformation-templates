@@ -1,0 +1,177 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "This template creates VPC"
+Parameters:
+  VpcCIDR:
+    Type: String
+    Default: "20.0.0.0/16"
+
+  CIDRPublicSubnetA:
+    Description: CIDR for Public Subnet A
+    Type: String
+    Default: "20.0.1.0/24"
+
+  CIDRPublicSubnetB:
+    Description: CIDR for Public Subnet B
+    Type: String
+    Default: "20.0.2.0/24"
+
+  CIDRPrivateSubnetA:
+    Description: CIDR for Private Subnet A
+    Type: String
+    Default: "20.0.3.0/24"
+
+  CIDRPrivateSubnetB:
+    Description: CIDR for Private Subnet B
+    Type: String
+    Default: "20.0.4.0/24"
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: TestVPC
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: test-gateway
+
+  AttachInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      CidrBlock: !Ref CIDRPublicSubnetA
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: test-public-subnet-a
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      CidrBlock: !Ref CIDRPublicSubnetB
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: test-public-subnet-b
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      CidrBlock: !Ref CIDRPrivateSubnetA
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: test-private-subnet-a
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      CidrBlock: !Ref CIDRPrivateSubnetB
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: test-private-subnet-b
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: TestPrivateRouteTable
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: TestPublicRouteTable
+
+  PublicRouteIGAssociation:
+    Type: AWS::EC2::Route
+    DependsOn: AttachInternetGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn: PublicRouteTable
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetA
+
+  PublicSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn: PublicRouteTable
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetB
+
+  PrivateSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn: PrivateRouteTable
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnetA
+
+  PrivateSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn: PrivateRouteTable
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnetB
+
+Outputs:
+  TestVPC:
+    Description: Test VPC
+    Value: !Ref VPC
+    Export:
+      Name: TestVPC
+
+  PrivateSubnetA:
+    Description: Test Pirvate Subnet A
+    Value: !Ref PrivateSubnetA
+    Export:
+      Name: PrivateSubnetA
+
+  PrivateSubnetB:
+    Description: Test Private Subnet B
+    Value: !Ref PrivateSubnetB
+    Export:
+      Name: PrivateSubnetB
+
+  PublicSubnetA:
+    Description: Test Public Subnet A
+    Value: !Ref PublicSubnetA
+    Export:
+      Name: PublicSubnetA
+
+  PublicSubnetB:
+    Description: Test Public Subnet B
+    Value: !Ref PublicSubnetB
+    Export:
+      Name: PublicSubnetB
